@@ -1,0 +1,144 @@
+:root {
+    --chat-rectangle-width: 350px;
+    --chat-message-width: 275px;
+}
+
+
+body {
+    background-color: gray;
+    font-family: "Times New Roman", Times, serif;
+    font-size: 20px;
+}
+
+#chat-rectangle {
+    position: absolute;
+    right: 10px;
+    bottom: 10px;
+    background-color: aliceblue;
+    width: var(--chat-rectangle-width);
+    height: 400px;
+    border: 2px solid rgb(174, 174, 255);
+    border-radius: 10px 10px 0px 0px;
+}
+
+#chat-rectangle-header {
+    width: var(--chat-rectangle-width);
+    height: 30px;
+    background-color: rgb(189, 224, 255);
+    font-size: 24px;
+    font-weight: bold;
+    color: rgb(19, 51, 122);
+    text-align: center;
+    border-radius: 10px 10px 0px 0px;
+}
+
+#chat-rectangle-body {
+    display: flex;
+    flex-direction: column-reverse;
+    justify-content: end;
+    overflow-y: scroll;
+    overflow-x: hidden;
+    height: 345px;
+    width: 100%;
+}
+
+#chat-rectangle-footer {
+    position: relative;
+    width: var(--chat-rectangle-width);
+}
+
+#footer-input-message {
+    width: 300px;
+    height: 20px;
+    font-size: 20px;
+}
+
+#footer-send-message {
+    position: absolute;
+    height: 26px;
+    width: 42px;
+    /* font-size: 20px; */
+    text-align: center;
+}
+
+.left-message {
+    position: relative;
+    text-align: center;
+    display: flex;
+    flex-flow: row nowrap;
+    justify-content: space-between;
+    border: 1px solid rgb(17, 70, 150);
+    margin-top: 2px;
+    margin-bottom: 2px;
+    background-color: rgb(161, 195, 245);
+    width: var(--chat-message-width);
+    left: 0px;
+    border-radius: 0px 15px 15px 15px;
+}
+
+.right-message {
+    position: relative;
+    text-align: center;
+    display: flex;
+    flex-flow: row nowrap;
+    justify-content: space-between;
+    border: 1px solid rgb(17, 70, 150);
+    margin-top: 2px;
+    margin-bottom: 2px;
+    background-color: rgb(103, 157, 238);
+    width: var(--chat-message-width);
+    left: 62px;
+    border-radius: 15px 0px 15px 15px;
+}
+
+.container-message {
+    position: relative;
+    margin: 3px;
+    justify-content: center;
+    align-items: center;
+    background-color: rgb(226, 233, 240);
+    border: 0px;
+}
+
+.share-button {
+    position: relative;
+    margin: 0;
+    top: 40%;
+    left: 50%;
+    -ms-transform: translate(-50%, -50%);
+    transform: translate(-50%, -50%);
+
+    color: #ffffff;
+    background-color: rgb(49, 110, 241);
+    border-radius: 10px;
+}
+
+.share-button:hover {
+    color: #ffffff;
+    background-color: rgb(17, 84, 230);
+}
+
+.share-button:active {
+    color: #1d59fc;
+    background-color: rgb(180, 200, 245);
+}
+
+/* width */
+::-webkit-scrollbar {
+    width: 10px;
+}
+
+/* Track */
+::-webkit-scrollbar-track {
+    background: #d1d5ff;
+}
+
+/* Handle */
+::-webkit-scrollbar-thumb {
+    background: rgb(142, 167, 250);
+}
+
+/* Handle on hover */
+::-webkit-scrollbar-thumb:hover {
+    background: rgb(82, 113, 255);
+}
