@@ -7,7 +7,7 @@
 body {
     background-color: gray;
     font-family: "Times New Roman", Times, serif;
-    font-size: 20px;
+    font-size: 16px;
 }
 
 #chat-rectangle {
@@ -63,31 +63,31 @@ body {
 
 .left-message {
     position: relative;
-    text-align: center;
+    text-align: left;
     display: flex;
     flex-flow: row nowrap;
     justify-content: space-between;
     border: 1px solid rgb(17, 70, 150);
-    margin-top: 2px;
-    margin-bottom: 2px;
+    margin: 2px 0px 2px;
+    padding: 0px 7px 0px;
     background-color: rgb(161, 195, 245);
     width: var(--chat-message-width);
-    left: 0px;
+    left: 2px;
     border-radius: 0px 15px 15px 15px;
 }
 
 .right-message {
     position: relative;
-    text-align: center;
+    text-align: left;
     display: flex;
     flex-flow: row nowrap;
     justify-content: space-between;
     border: 1px solid rgb(17, 70, 150);
-    margin-top: 2px;
-    margin-bottom: 2px;
+    margin: 2px 0px 2px;
+    padding: 0px 7px 0px;
     background-color: rgb(103, 157, 238);
     width: var(--chat-message-width);
-    left: 62px;
+    left: 47px;
     border-radius: 15px 0px 15px 15px;
 }
 
@@ -95,6 +95,7 @@ body {
     position: relative;
     margin: 3px;
     justify-content: center;
+    text-align: center;
     align-items: center;
     background-color: rgb(226, 233, 240);
     border: 0px;
@@ -103,10 +104,10 @@ body {
 .share-button {
     position: relative;
     margin: 0;
-    top: 40%;
-    left: 50%;
-    -ms-transform: translate(-50%, -50%);
-    transform: translate(-50%, -50%);
+    top: 50%;
+    /* left: 50%; */
+    -ms-transform: translate(0%, -50%);
+    transform: translate(0%, -50%);
 
     color: #ffffff;
     background-color: rgb(49, 110, 241);
@@ -122,6 +123,23 @@ body {
     color: #1d59fc;
     background-color: rgb(180, 200, 245);
 }
+
+.notification-text {
+    width: 100%;
+    color: #0d2569;
+    font-size: 16px;
+    font-style: italic;
+    /* text-align: center; */
+    /* top: 50%; */
+    /* background-color: #1d59fc; */
+}
+
+/* .notification-text-line {
+    position: absolute;
+    color: black;
+    width: 100%;
+    top: 50%;
+} */
 
 /* width */
 ::-webkit-scrollbar {
