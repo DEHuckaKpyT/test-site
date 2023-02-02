@@ -101,6 +101,26 @@ body {
     border: 0px;
 }
 
+.container-message-green{
+    position: relative;
+    margin: 3px;
+    justify-content: center;
+    text-align: center;
+    align-items: center;
+    background-color: rgb(197, 253, 197);
+    border: 0px;
+}
+
+.container-message-red{
+    position: relative;
+    margin: 3px;
+    justify-content: center;
+    text-align: center;
+    align-items: center;
+    background-color: rgb(253, 197, 197);
+    border: 0px;
+}
+
 .share-button {
     position: relative;
     margin: 0;
@@ -129,17 +149,8 @@ body {
     color: #0d2569;
     font-size: 16px;
     font-style: italic;
-    /* text-align: center; */
-    /* top: 50%; */
-    /* background-color: #1d59fc; */
 }
 
-/* .notification-text-line {
-    position: absolute;
-    color: black;
-    width: 100%;
-    top: 50%;
-} */
 
 /* width */
 ::-webkit-scrollbar {
