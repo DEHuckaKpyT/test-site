@@ -38,7 +38,7 @@ body {
     justify-content: start;
     overflow-y: scroll;
     overflow-x: hidden;
-    height: 337px;
+    height: 345px;
     width: 100%;
 }
 
@@ -49,17 +49,14 @@ body {
 
 #footer-input-message {
     width: 300px;
-    height: 28px;
-    font-size: 16px;
-    word-break: break-word;
-    resize: none;
-    line-height: 10px;
+    height: 20px;
+    font-size: 20px;
 }
 
 #footer-send-message {
     position: absolute;
-    height: 34px;
-    width: 44px;
+    height: 26px;
+    width: 42px;
     /* font-size: 20px; */
     text-align: center;
 }
@@ -77,7 +74,6 @@ body {
     width: var(--chat-message-width);
     left: 2px;
     border-radius: 0px 15px 15px 15px;
-    word-break: break-all;
 }
 
 .right-message {
@@ -93,7 +89,6 @@ body {
     width: var(--chat-message-width);
     left: 47px;
     border-radius: 15px 0px 15px 15px;
-    word-break: break-all;
 }
 
 .container-message {
