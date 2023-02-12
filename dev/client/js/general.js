@@ -61,7 +61,7 @@ async function sendMessage(value) {
         text: value
     }
     socket.send(JSON.stringify(message))
-    messagesContainer.appendChild(createTextMessage(message))
+    messagesContainer.appendChild(createRightTextMessage(message.text))
     messagesContainer.scrollTo(0, messagesContainer.scrollHeight)
 }
 
@@ -116,14 +116,25 @@ function createShareButtonMessage(message) {
 }
 
 function createTextMessage(message) {
-    const div = document.createElement("div")
-    div.innerText = message.text
-
     if (message.authorId) {
-        div.className = "right-message"
+        return createLeftTextMessage(message.text)
     } else {
-        div.className = "left-message"
+        return createRightTextMessage(message.text)
     }
+}
+
+function createRightTextMessage(text) {
+    const div = document.createElement("div")
+    div.className = "right-message"
+    div.innerText = text
+
+    return div
+}
+
+function createLeftTextMessage(text) {
+    const div = document.createElement("div")
+    div.className = "left-message"
+    div.innerText = text
 
     return div
 }

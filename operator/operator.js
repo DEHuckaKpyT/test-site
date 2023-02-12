@@ -1,7 +1,7 @@
 
 
 function onClick() {
-    let socket = new WebSocket("ws://localhost:8080/sessions/63966b24-a191-4f68-995d-fb76b5d0be7c/operator");
+    let socket = new WebSocket("ws://localhost:8080/sessions/94d58bd0-3c60-471d-9fdf-a8a8d9864475/operator");
 
     const replayer = new rrweb.Replayer([], {
         liveMode: true,
