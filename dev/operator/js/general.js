@@ -3,6 +3,8 @@ const chatId = "94d58bd0-3c60-471d-9fdf-a8a8d9864475"
 const authToken = 'abc123';
 
 document.cookie = `Authorization=Bearer ${authToken}; path=/`;
+const chatRectangle = document.createElement("div")
+// const options = document.createElement("div")
 
 const socket = new WebSocket(`ws://localhost:8080/chats/${chatId}?access_token=${authToken}`);
 
@@ -34,6 +36,20 @@ function loadElements() {
         const chatRectangleFooterSendMessageButton = document.createElement("button")
         chatRectangleFooterSendMessageButton.id = "footer-send-message"
         chatRectangleFooterSendMessageButton.innerText = "✉"
+        chatRectangleFooterSendMessageButton.addEventListener("click", function (event) {
+            if (event.button != 0) return // ЛКМ
+
+            sendMessage(chatRectangleFooterInput.value)
+            chatRectangleFooterInput.value = ""
+        })
+        chatRectangleFooterSendMessageButton.addEventListener("mouseover", function (event) {
+            cursorOnButton = true
+            showSendOptions()
+        })
+        chatRectangleFooterSendMessageButton.addEventListener("mouseout", function (event) {
+            cursorOnButton = false
+            hideSendOptions()
+        })
 
         chatRectangleFooter.appendChild(chatRectangleFooterInput)
         chatRectangleFooter.appendChild(chatRectangleFooterSendMessageButton)
@@ -41,7 +57,7 @@ function loadElements() {
         return chatRectangleFooter
     }
 
-    const chatRectangle = document.createElement("div")
+    // const chatRectangle = document.createElement("div")
     chatRectangle.id = "chat-rectangle"
 
     const chatRectangleHeader = document.createElement("div")
@@ -90,28 +106,38 @@ function createMessage(message) {
         case "TEXT":
             return createTextMessage(message)
         case "SHARE_PAGE":
-            return createShareButtonMessage(message)
+            return createInfoMessage(message)
+        case "CONNECT_PAGE":
+            return createConnectButtonMessage(message)
         case "ERROR":
             return createErrorMessage(message.text)
         default:
-            return
+            return document.createElement("div")
     }
 }
 
-function createShareButtonMessage(message) {
+function createInfoMessage(message) {
+    const div = document.createElement("div")
+    div.className = "container-message-green"
+    div.innerHTML = `<b><u class="notification-text">Предложение поделиться страницей отправлено</u></b>`
+
+    return div
+}
+
+function createConnectButtonMessage() {
     const container = document.createElement("div")
     container.className = "container-message"
 
     const button = document.createElement("button")
-    button.className = "share-button"
-    button.innerText = "Поделиться страницей"
+    button.className = "active-button"
+    button.innerText = "Просмотреть страницу"
     button.addEventListener("click", async function () {
         const socket = new WebSocket(`ws://localhost:8080/sessions/${chatId}/operator?access_token=${authToken}`);
-
+        const replayer = new rrweb.Replayer([], {
+            liveMode: true,
+        })
         socket.onopen = function (e) {
-            const replayer = new rrweb.Replayer([], {
-                liveMode: true,
-            })
+
             replayer.startLive();
         }
 
@@ -162,14 +188,49 @@ function startListenToNewMessages() {
 
     socket.onmessage = function (event) {
         const newMessage = JSON.parse(event.data)
-        messagesContainer.appendChild(createMessage(newMessage));
+        messagesContainer.appendChild(createMessage(newMessage))
         messagesContainer.scrollTo(0, messagesContainer.scrollHeight)
     }
 
     socket.onclose = function (event) {
-        messagesContainer.appendChild(createErrorMessage("Отключён от сервера"));
+        messagesContainer.appendChild(createErrorMessage("Отключён от сервера"))
         messagesContainer.scrollTo(0, messagesContainer.scrollHeight)
     }
+}
+
+const options = document.createElement("div")
+options.id = "send-message-options"
+options.innerText = "Отправить предложение поделиться страницей"
+options.addEventListener("click", async function (event) {
+    const messagesContainer = document.getElementById("chat-rectangle-body")
+    messagesContainer.appendChild(createConnectButtonMessage())
+    messagesContainer.scrollTo(0, messagesContainer.scrollHeight)
+})
+let cursorOnButton = false
+let cursorOnOptions = false
+
+function showSendOptions() {
+    options.addEventListener("mouseover", optionsMouseOver)
+    options.addEventListener("mouseout", optionsMouseOut)
+    chatRectangle.appendChild(options)
+}
+
+async function hideSendOptions() {
+    await sleep(1500)
+    if (!cursorOnButton & !cursorOnOptions) {
+        options.removeEventListener("mouseover", optionsMouseOver)
+        options.removeEventListener("mouseout", optionsMouseOut)
+        chatRectangle.removeChild(options)
+    }
+}
+
+function optionsMouseOver(event) {
+    cursorOnOptions = true
+}
+
+function optionsMouseOut(event) {
+    cursorOnOptions = false
+    hideSendOptions()
 }
 
 
@@ -179,7 +240,9 @@ function startListenToNewMessages() {
 
 
 
-
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
 
 async function prepareLibs() {
     const rrwebStyle = document.createElement("link")
@@ -328,7 +391,7 @@ body {
     border: 0px;
 }
 
-.share-button {
+.active-button {
     position: relative;
     margin: 0;
     top: 50%;
@@ -341,12 +404,12 @@ body {
     border-radius: 10px;
 }
 
-.share-button:hover {
+.active-button:hover {
     color: #ffffff;
     background-color: rgb(17, 84, 230);
 }
 
-.share-button:active {
+.active-button:active {
     color: #1d59fc;
     background-color: rgb(180, 200, 245);
 }
@@ -358,6 +421,27 @@ body {
     font-style: italic;
 }
 
+#send-message-options {
+    position: absolute;
+    height: 38px;
+    width: 180px;
+    bottom: 30px;
+    right: -1px;
+    color: #001c69;
+    background-color: rgb(226, 233, 240);
+    text-align: center;
+    align-items: center;
+    border: 3px solid rgb(17, 70, 150);
+    border-radius: 15px 15px 0px 15px;
+    margin: 5px;
+    cursor: default;
+}
+
+#send-message-options:hover {
+    color: rgb(226, 233, 240);
+    background-color: #001c69;
+    border: 3px solid rgb(226, 233, 240);
+}
 
 /* width */
 ::-webkit-scrollbar {

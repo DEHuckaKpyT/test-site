@@ -1,7 +1,7 @@
 const host = "127.0.0.1:8080"
 const chatId = "94d58bd0-3c60-471d-9fdf-a8a8d9864475"
 
-const socket = new WebSocket(`ws://localhost:8080/chats/${chatId}`);
+const socket = new WebSocket(`ws://${host}/chats/${chatId}`);
 
 document.addEventListener('DOMContentLoaded', async function () {
     await prepareLibs()
@@ -31,6 +31,12 @@ function loadElements() {
         const chatRectangleFooterSendMessageButton = document.createElement("button")
         chatRectangleFooterSendMessageButton.id = "footer-send-message"
         chatRectangleFooterSendMessageButton.innerText = "✉"
+        chatRectangleFooterSendMessageButton.addEventListener("click", function (event) {
+            if (event.button != 0) return // ЛКМ
+
+            sendMessage(chatRectangleFooterInput.value)
+            chatRectangleFooterInput.value = ""
+        })
 
         chatRectangleFooter.appendChild(chatRectangleFooterInput)
         chatRectangleFooter.appendChild(chatRectangleFooterSendMessageButton)
@@ -87,7 +93,7 @@ function createMessage(message) {
         case "ERROR":
             return createErrorMessage(message.text)
         default:
-            return
+            return document.createElement("div")
     }
 }
 
@@ -96,18 +102,35 @@ function createShareButtonMessage(message) {
     container.className = "container-message"
 
     const button = document.createElement("button")
-    button.className = "share-button"
+    button.className = "active-button"
     button.innerText = "Поделиться страницей"
     button.addEventListener("click", async function () {
-        const socket = new WebSocket(`ws://localhost:8080/sessions/${chatId}/client`);
+        let currantStatus = "STOPPED"
+        let stopFn
+        const socket = new WebSocket(`ws://${host}/sessions/${chatId}`);
+
+        function recording(socket, command) {
+            if (command == "START" && currantStatus != "STARTED") {
+                currantStatus = "STARTED"
+                stopFn = rrweb.record({
+                    emit(event) {
+                        socket.send(JSON.stringify(event));
+                    },
+                    // maskTextClass: new RegExp(".*ret")
+                });
+            } else if (command == "STOP") {
+                stopFn()
+                currantStatus = "STOPPED"
+            }
+        }
 
         socket.onopen = function (e) {
-            rrweb.record({
-                emit(event) {
-                    socket.send(JSON.stringify(event))
-                },
-            })
-        }
+            recording(socket, "START")
+        };
+        socket.onmessage = function (e) {
+            console.log(e.data)
+            recording(socket, e.data)
+        };
     })
 
     container.appendChild(button)
@@ -318,7 +341,7 @@ body {
     border: 0px;
 }
 
-.share-button {
+.active-button {
     position: relative;
     margin: 0;
     top: 50%;
@@ -331,12 +354,12 @@ body {
     border-radius: 10px;
 }
 
-.share-button:hover {
+.active-button:hover {
     color: #ffffff;
     background-color: rgb(17, 84, 230);
 }
 
-.share-button:active {
+.active-button:active {
     color: #1d59fc;
     background-color: rgb(180, 200, 245);
 }

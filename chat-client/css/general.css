@@ -106,7 +106,7 @@ body {
     border: 0px;
 }
 
-.container-message-green{
+.container-message-green {
     position: relative;
     margin: 3px;
     justify-content: center;
@@ -116,7 +116,7 @@ body {
     border: 0px;
 }
 
-.container-message-red{
+.container-message-red {
     position: relative;
     margin: 3px;
     justify-content: center;
@@ -126,7 +126,7 @@ body {
     border: 0px;
 }
 
-.share-button {
+.active-button {
     position: relative;
     margin: 0;
     top: 50%;
@@ -139,12 +139,12 @@ body {
     border-radius: 10px;
 }
 
-.share-button:hover {
+.active-button:hover {
     color: #ffffff;
     background-color: rgb(17, 84, 230);
 }
 
-.share-button:active {
+.active-button:active {
     color: #1d59fc;
     background-color: rgb(180, 200, 245);
 }
@@ -154,6 +154,28 @@ body {
     color: #0d2569;
     font-size: 16px;
     font-style: italic;
+}
+
+#send-message-options {
+    position: absolute;
+    height: 38px;
+    width: 180px;
+    bottom: 30px;
+    right: -1px;
+    color: #001c69;
+    background-color: rgb(226, 233, 240);
+    text-align: center;
+    align-items: center;
+    border: 3px solid rgb(17, 70, 150);
+    border-radius: 15px 15px 0px 15px;
+    margin: 5px;
+    cursor: default;
+}
+
+#send-message-options:hover {
+    color: rgb(226, 233, 240);
+    background-color: #001c69;
+    border: 3px solid rgb(226, 233, 240);
 }
 
 
