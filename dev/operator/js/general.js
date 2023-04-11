@@ -2,11 +2,10 @@ const host = "127.0.0.1:8080"
 const chatId = "94d58bd0-3c60-471d-9fdf-a8a8d9864475"
 const authToken = 'abc123';
 
-document.cookie = `Authorization=Bearer ${authToken}; path=/`;
 const chatRectangle = document.createElement("div")
 // const options = document.createElement("div")
 
-const socket = new WebSocket(`ws://localhost:8080/chats/${chatId}?access_token=${authToken}`);
+const socket = new WebSocket(`ws://${host}/chats/${chatId}?access_token=${authToken}`);
 
 document.addEventListener('DOMContentLoaded', async function () {
     await prepareLibs()
@@ -106,9 +105,11 @@ function createMessage(message) {
         case "TEXT":
             return createTextMessage(message)
         case "SHARE_PAGE":
-            return createInfoMessage(message)
+            return createConnectButtonMessage(message)
         case "CONNECT_PAGE":
             return createConnectButtonMessage(message)
+        case "CLOSE_CONNECT":
+            return createInfoMessage(message)
         case "ERROR":
             return createErrorMessage(message.text)
         default:
@@ -119,7 +120,9 @@ function createMessage(message) {
 function createInfoMessage(message) {
     const div = document.createElement("div")
     div.className = "container-message-green"
-    div.innerHTML = `<b><u class="notification-text">Предложение поделиться страницей отправлено</u></b>`
+    if (message.type == "CLOSE_CONNECT") {
+        div.innerHTML = `<b><u class="notification-text">Пользователь закрыл доступ к своей странице</u></b>`
+    }
 
     return div
 }
@@ -132,14 +135,18 @@ function createConnectButtonMessage() {
     button.className = "active-button"
     button.innerText = "Просмотреть страницу"
     button.addEventListener("click", async function () {
-        const socket = new WebSocket(`ws://localhost:8080/sessions/${chatId}/operator?access_token=${authToken}`);
+        const socket = new WebSocket(`ws://${host}/sessions/${chatId}?access_token=${authToken}`);
         const replayer = new rrweb.Replayer([], {
+            // target: document.getElementById("custom-replay-frame"),
             liveMode: true,
+            // insertStyleRules: [
+            //     ".replayer-wrapper{ top: 100px; }"
+            // ]
         })
-        socket.onopen = function (e) {
 
-            replayer.startLive();
-        }
+        // socket.onopen = function (e) {
+        replayer.startLive();
+        // }
 
         socket.onmessage = function (event) {
             replayer.addEvent(JSON.parse(event.data));
@@ -205,6 +212,11 @@ options.addEventListener("click", async function (event) {
     const messagesContainer = document.getElementById("chat-rectangle-body")
     messagesContainer.appendChild(createConnectButtonMessage())
     messagesContainer.scrollTo(0, messagesContainer.scrollHeight)
+    const message = {
+        text: "Просмотреть страницу",
+        type: "SHARE_PAGE"
+    }
+    socket.send(JSON.stringify(message))
 })
 let cursorOnButton = false
 let cursorOnOptions = false
@@ -270,13 +282,16 @@ const styles = `
 
 
 body {
-    background-color: gray;
     font-family: "Times New Roman", Times, serif;
     font-size: 16px;
+    margin: 0;
+    border: 0;
+    padding: 0;
 }
 
 #chat-rectangle {
-    position: absolute;
+    position: fixed;
+    z-index: 9998!important;
     right: 10px;
     bottom: 10px;
     background-color: aliceblue;
@@ -302,7 +317,6 @@ body {
     flex-direction: column;
     justify-content: start;
     overflow-y: scroll;
-    overflow-x: hidden;
     height: 337px;
     width: 100%;
 }
@@ -414,6 +428,29 @@ body {
     background-color: rgb(180, 200, 245);
 }
 
+.active-negative-button {
+    position: relative;
+    margin: 0;
+    top: 50%;
+    /* left: 50%; */
+    -ms-transform: translate(0%, -50%);
+    transform: translate(0%, -50%);
+
+    color: #ffffff;
+    background-color: rgb(255, 72, 72);
+    border-radius: 10px;
+}
+
+.active-negative-button:hover {
+    color: #ffffff;
+    background-color: rgb(230, 17, 17);
+}
+
+.active-negative-button:active {
+    color: #fc1d1d;
+    background-color: rgb(245, 180, 180);
+}
+
 .notification-text {
     width: 100%;
     color: #0d2569;
@@ -444,22 +481,57 @@ body {
 }
 
 /* width */
-::-webkit-scrollbar {
+#chat-rectangle *::-webkit-scrollbar {
     width: 10px;
 }
 
 /* Track */
-::-webkit-scrollbar-track {
+#chat-rectangle *::-webkit-scrollbar-track {
     background: #d1d5ff;
 }
 
 /* Handle */
-::-webkit-scrollbar-thumb {
+#chat-rectangle *::-webkit-scrollbar-thumb {
     background: rgb(142, 167, 250);
 }
 
 /* Handle on hover */
-::-webkit-scrollbar-thumb:hover {
+#chat-rectangle *::-webkit-scrollbar-thumb:hover {
     background: rgb(82, 113, 255);
 }
 `
+
+// возвращает куки с указанным name,
+// или undefined, если ничего не найдено
+function getCookie(name) {
+    let matches = document.cookie.match(new RegExp(
+        "(?:^|; )" + name.replace(/([\.$?*|{}\(\)\[\]\\\/\+^])/g, '\\$1') + "=([^;]*)"
+    ));
+    return matches ? decodeURIComponent(matches[1]) : undefined;
+}
+
+function setCookie(name, value, options = {}) {
+    options = {
+        path: '/',
+        // при необходимости добавьте другие значения по умолчанию
+        expires: "Tue, 19 Jan 2038 03:14:07 GMT"
+    };
+
+    let updatedCookie = encodeURIComponent(name) + "=" + encodeURIComponent(value);
+
+    for (let optionKey in options) {
+        updatedCookie += "; " + optionKey;
+        let optionValue = options[optionKey];
+        if (optionValue !== true) {
+            updatedCookie += "=" + optionValue;
+        }
+    }
+
+    document.cookie = updatedCookie;
+}
+
+function deleteCookie(name) {
+    setCookie(name, "", {
+        'max-age': 0
+    })
+}

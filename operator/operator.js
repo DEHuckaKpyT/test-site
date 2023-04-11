@@ -12,7 +12,7 @@ function onClick() {
         replayer.addEvent(JSON.parse(event.data));
     };
 
-    socket.onopen = function (e) {
-        socket.send("asd");
-    };
+    // socket.onopen = function (e) {
+    //     socket.send("asd");
+    // };
 }

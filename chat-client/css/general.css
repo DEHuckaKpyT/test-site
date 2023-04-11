@@ -149,6 +149,29 @@ body {
     background-color: rgb(180, 200, 245);
 }
 
+.active-negative-button {
+    position: relative;
+    margin: 0;
+    top: 50%;
+    /* left: 50%; */
+    -ms-transform: translate(0%, -50%);
+    transform: translate(0%, -50%);
+
+    color: #ffffff;
+    background-color: rgb(255, 72, 72);
+    border-radius: 10px;
+}
+
+.active-negative-button:hover {
+    color: #ffffff;
+    background-color: rgb(230, 17, 17);
+}
+
+.active-negative-button:active {
+    color: #fc1d1d;
+    background-color: rgb(245, 180, 180);
+}
+
 .notification-text {
     width: 100%;
     color: #0d2569;

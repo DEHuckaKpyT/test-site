@@ -90,6 +90,8 @@ function createMessage(message) {
             return createTextMessage(message)
         case "SHARE_PAGE":
             return createShareButtonMessage(message)
+        case "CLOSE_CONNECT":
+            return createCloseButtonMessage(message)
         case "ERROR":
             return createErrorMessage(message.text)
         default:
@@ -97,7 +99,40 @@ function createMessage(message) {
     }
 }
 
+let currantRecordingStatus = "STOPPED"
+let recordingStartedByUser = false
+let stopRecordingFunction
+
 function createShareButtonMessage(message) {
+    function createTempCloseButtonMessage(message) {
+        const messagesContainer = document.getElementById("chat-rectangle-body")
+        const container = document.createElement("div")
+        container.className = "container-message"
+
+        const button = document.createElement("button")
+        button.className = "active-negative-button"
+        button.innerText = "Прекратить доступ к странице"
+        button.addEventListener("click", async function () {
+            if (recordingStartedByUser) {
+                recordingStartedByUser = false
+                currantRecordingStatus = "STOPPED"
+                stopRecordingFunction()
+                // messagesContainer.removeChild(container)
+                const message = {
+                    text: "Закрыть доступ к странице",
+                    type: "CLOSE_CONNECT"
+                }
+                socket.send(JSON.stringify(message))
+                // messagesContainer.appendChild(createInfoMessage(message))
+            }
+        })
+
+        container.appendChild(button)
+
+        messagesContainer.appendChild(container)
+        messagesContainer.scrollTo(0, messagesContainer.scrollHeight)
+    }
+
     const container = document.createElement("div")
     container.className = "container-message"
 
@@ -105,24 +140,24 @@ function createShareButtonMessage(message) {
     button.className = "active-button"
     button.innerText = "Поделиться страницей"
     button.addEventListener("click", async function () {
-        let currantStatus = "STOPPED"
-        let stopFn
         const socket = new WebSocket(`ws://${host}/sessions/${chatId}`);
 
         function recording(socket, command) {
-            if (command == "START" && currantStatus != "STARTED") {
-                currantStatus = "STARTED"
-                stopFn = rrweb.record({
+            if (recordingStartedByUser && command == "START" && currantRecordingStatus != "STARTED") {
+                currantRecordingStatus = "STARTED"
+                stopRecordingFunction = rrweb.record({
                     emit(event) {
                         socket.send(JSON.stringify(event));
                     },
                     // maskTextClass: new RegExp(".*ret")
                 });
             } else if (command == "STOP") {
-                stopFn()
-                currantStatus = "STOPPED"
+                stopRecordingFunction()
+                currantRecordingStatus = "STOPPED"
             }
         }
+
+        recordingStartedByUser = true
 
         socket.onopen = function (e) {
             recording(socket, "START")
@@ -131,6 +166,33 @@ function createShareButtonMessage(message) {
             console.log(e.data)
             recording(socket, e.data)
         };
+
+        createTempCloseButtonMessage(message)
+    })
+
+    container.appendChild(button)
+
+    return container
+}
+
+function createCloseButtonMessage(message) {
+    const container = document.createElement("div")
+    container.className = "container-message"
+
+    const button = document.createElement("button")
+    button.className = "active-negative-button"
+    button.innerText = "Прекратить доступ к странице"
+    button.addEventListener("click", async function () {
+        if (recordingStartedByUser) {
+            recordingStartedByUser = false
+            currantRecordingStatus = "STOPPED"
+            stopRecordingFunction()
+            const message = {
+                text: "Закрыть доступ к странице",
+                type: "CLOSE_CONNECT"
+            }
+            socket.send(JSON.stringify(message))
+        }
     })
 
     container.appendChild(button)
@@ -170,6 +232,16 @@ function createErrorMessage(error) {
     return div
 }
 
+function createInfoMessage(message) {
+    const div = document.createElement("div")
+    div.className = "container-message-green"
+    if (message.type = "CLOSE_CONNECT") {
+        div.innerHTML = `<b><u class="notification-text">Доступ к просмотру страницы был закрыт</u></b>`
+    }
+
+    return div
+}
+
 function startListenToNewMessages() {
     const messagesContainer = document.getElementById("chat-rectangle-body")
 
@@ -184,7 +256,6 @@ function startListenToNewMessages() {
         messagesContainer.scrollTo(0, messagesContainer.scrollHeight)
     }
 }
-
 
 
 
@@ -364,6 +435,29 @@ body {
     background-color: rgb(180, 200, 245);
 }
 
+.active-negative-button {
+    position: relative;
+    margin: 0;
+    top: 50%;
+    /* left: 50%; */
+    -ms-transform: translate(0%, -50%);
+    transform: translate(0%, -50%);
+
+    color: #ffffff;
+    background-color: rgb(255, 72, 72);
+    border-radius: 10px;
+}
+
+.active-negative-button:hover {
+    color: #ffffff;
+    background-color: rgb(230, 17, 17);
+}
+
+.active-negative-button:active {
+    color: #fc1d1d;
+    background-color: rgb(245, 180, 180);
+}
+
 .notification-text {
     width: 100%;
     color: #0d2569;
@@ -392,3 +486,38 @@ body {
     background: rgb(82, 113, 255);
 }
 `
+
+// возвращает куки с указанным name,
+// или undefined, если ничего не найдено
+function getCookie(name) {
+    let matches = document.cookie.match(new RegExp(
+        "(?:^|; )" + name.replace(/([\.$?*|{}\(\)\[\]\\\/\+^])/g, '\\$1') + "=([^;]*)"
+    ));
+    return matches ? decodeURIComponent(matches[1]) : undefined;
+}
+
+function setCookie(name, value, options = {}) {
+    options = {
+        path: '/',
+        // при необходимости добавьте другие значения по умолчанию
+        expires: "Tue, 19 Jan 2038 03:14:07 GMT"
+    };
+
+    let updatedCookie = encodeURIComponent(name) + "=" + encodeURIComponent(value);
+
+    for (let optionKey in options) {
+        updatedCookie += "; " + optionKey;
+        let optionValue = options[optionKey];
+        if (optionValue !== true) {
+            updatedCookie += "=" + optionValue;
+        }
+    }
+
+    document.cookie = updatedCookie;
+}
+
+function deleteCookie(name) {
+    setCookie(name, "", {
+        'max-age': 0
+    })
+}
