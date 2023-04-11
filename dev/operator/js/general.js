@@ -144,9 +144,11 @@ function createConnectButtonMessage() {
             // ]
         })
 
-        // socket.onopen = function (e) {
         replayer.startLive();
-        // }
+
+        socket.onopen = function (e) {
+            socket.send("START");
+        }
 
         socket.onmessage = function (event) {
             replayer.addEvent(JSON.parse(event.data));

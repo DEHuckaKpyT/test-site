@@ -1,13 +1,53 @@
+prepareLibs()
 const host = "127.0.0.1:8080"
 const chatId = "94d58bd0-3c60-471d-9fdf-a8a8d9864475"
 
-const socket = new WebSocket(`ws://${host}/chats/${chatId}`);
+let chatSocket
+
+let currantRecordingStatus
+let recordingStartedByUser
+let stopRecordingFunction
 
 document.addEventListener('DOMContentLoaded', async function () {
-    await prepareLibs()
+    loadParams()
     await addStyles()
     await loadChatWindow()
 })
+
+function loadParams() {
+    chatSocket = new WebSocket(`ws://${host}/chats/${chatId}`);
+    currantRecordingStatus = "STOPPED"
+    recordingStartedByUser = getCookie("recordingStartedByUser", "false")
+
+    if (recordingStartedByUser == "true") {
+        const socket = new WebSocket(`ws://${host}/sessions/${chatId}`);
+
+        function recording(socket, command) {
+            if (recordingStartedByUser == "true" && command == "START" && currantRecordingStatus != "STARTED") {
+                currantRecordingStatus = "STARTED"
+                stopRecordingFunction = rrweb.record({
+                    emit(event) {
+                        socket.send(JSON.stringify(event));
+                    },
+                    maskAllInputs: true,
+                    maskTextClass: new RegExp(".*ymaps-.*-search__suggest-item.*"),
+                    // maskInputOptions: { password: true, text: true }
+                });
+            } else if (command == "STOP") {
+                stopRecordingFunction()
+                currantRecordingStatus = "STOPPED"
+            }
+        }
+
+        socket.onopen = function (e) {
+            recording(socket, "START")
+        };
+        socket.onmessage = function (e) {
+            console.log(e.data)
+            recording(socket, e.data)
+        };
+    }
+}
 
 async function loadChatWindow() {
     loadElements()
@@ -66,7 +106,7 @@ async function sendMessage(value) {
     const message = {
         text: value
     }
-    socket.send(JSON.stringify(message))
+    chatSocket.send(JSON.stringify(message))
     messagesContainer.appendChild(createRightTextMessage(message.text))
     messagesContainer.scrollTo(0, messagesContainer.scrollHeight)
 }
@@ -99,10 +139,6 @@ function createMessage(message) {
     }
 }
 
-let currantRecordingStatus = "STOPPED"
-let recordingStartedByUser = false
-let stopRecordingFunction
-
 function createShareButtonMessage(message) {
     function createTempCloseButtonMessage(message) {
         const messagesContainer = document.getElementById("chat-rectangle-body")
@@ -113,8 +149,9 @@ function createShareButtonMessage(message) {
         button.className = "active-negative-button"
         button.innerText = "Прекратить доступ к странице"
         button.addEventListener("click", async function () {
-            if (recordingStartedByUser) {
-                recordingStartedByUser = false
+            if (recordingStartedByUser == "true") {
+                recordingStartedByUser = "false"
+                setCookie("recordingStartedByUser", "false")
                 currantRecordingStatus = "STOPPED"
                 stopRecordingFunction()
                 // messagesContainer.removeChild(container)
@@ -122,7 +159,7 @@ function createShareButtonMessage(message) {
                     text: "Закрыть доступ к странице",
                     type: "CLOSE_CONNECT"
                 }
-                socket.send(JSON.stringify(message))
+                chatSocket.send(JSON.stringify(message))
                 // messagesContainer.appendChild(createInfoMessage(message))
             }
         })
@@ -140,15 +177,19 @@ function createShareButtonMessage(message) {
     button.className = "active-button"
     button.innerText = "Поделиться страницей"
     button.addEventListener("click", async function () {
+        if (currantRecordingStatus == "STARTED") return;
+
         const socket = new WebSocket(`ws://${host}/sessions/${chatId}`);
 
         function recording(socket, command) {
-            if (recordingStartedByUser && command == "START" && currantRecordingStatus != "STARTED") {
+            if (recordingStartedByUser == "true" && command == "START" && currantRecordingStatus != "STARTED") {
                 currantRecordingStatus = "STARTED"
                 stopRecordingFunction = rrweb.record({
                     emit(event) {
                         socket.send(JSON.stringify(event));
                     },
+                    maskTextClass: new RegExp(".*ymaps-.*-search__suggest-item.*"),
+                    maskAllInputs: true,
                     // maskTextClass: new RegExp(".*ret")
                 });
             } else if (command == "STOP") {
@@ -157,7 +198,8 @@ function createShareButtonMessage(message) {
             }
         }
 
-        recordingStartedByUser = true
+        recordingStartedByUser = "true"
+        setCookie("recordingStartedByUser", "true")
 
         socket.onopen = function (e) {
             recording(socket, "START")
@@ -183,15 +225,16 @@ function createCloseButtonMessage(message) {
     button.className = "active-negative-button"
     button.innerText = "Прекратить доступ к странице"
     button.addEventListener("click", async function () {
-        if (recordingStartedByUser) {
-            recordingStartedByUser = false
+        if (recordingStartedByUser == "true") {
+            recordingStartedByUser = "false"
+            setCookie("recordingStartedByUser", "false")
             currantRecordingStatus = "STOPPED"
             stopRecordingFunction()
             const message = {
                 text: "Закрыть доступ к странице",
                 type: "CLOSE_CONNECT"
             }
-            socket.send(JSON.stringify(message))
+            chatSocket.send(JSON.stringify(message))
         }
     })
 
@@ -245,13 +288,13 @@ function createInfoMessage(message) {
 function startListenToNewMessages() {
     const messagesContainer = document.getElementById("chat-rectangle-body")
 
-    socket.onmessage = function (event) {
+    chatSocket.onmessage = function (event) {
         const newMessage = JSON.parse(event.data)
         messagesContainer.appendChild(createMessage(newMessage));
         messagesContainer.scrollTo(0, messagesContainer.scrollHeight)
     }
 
-    socket.onclose = function (event) {
+    chatSocket.onclose = function (event) {
         messagesContainer.appendChild(createErrorMessage("Отключён от сервера"));
         messagesContainer.scrollTo(0, messagesContainer.scrollHeight)
     }
@@ -265,7 +308,7 @@ function startListenToNewMessages() {
 
 
 
-async function prepareLibs() {
+function prepareLibs() {
     const rrwebStyle = document.createElement("link")
     rrwebStyle.rel = "stylesheet"
     rrwebStyle.href = "https://cdn.jsdelivr.net/npm/rrweb@latest/dist/rrweb.min.css"
@@ -291,13 +334,13 @@ const styles = `
 
 
 body {
-    background-color: gray;
     font-family: "Times New Roman", Times, serif;
     font-size: 16px;
 }
 
 #chat-rectangle {
-    position: absolute;
+    position: fixed;
+    z-index: 9998!important;
     right: 10px;
     bottom: 10px;
     background-color: aliceblue;
@@ -489,11 +532,11 @@ body {
 
 // возвращает куки с указанным name,
 // или undefined, если ничего не найдено
-function getCookie(name) {
+function getCookie(name, defaultValue = undefined) {
     let matches = document.cookie.match(new RegExp(
         "(?:^|; )" + name.replace(/([\.$?*|{}\(\)\[\]\\\/\+^])/g, '\\$1') + "=([^;]*)"
     ));
-    return matches ? decodeURIComponent(matches[1]) : undefined;
+    return matches ? decodeURIComponent(matches[1]) : defaultValue;
 }
 
 function setCookie(name, value, options = {}) {
@@ -520,4 +563,8 @@ function deleteCookie(name) {
     setCookie(name, "", {
         'max-age': 0
     })
+}
+
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
 }
