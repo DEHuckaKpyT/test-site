@@ -13,7 +13,12 @@ const settings = syncRequest('GET', '/sessions/mask-settings')
 document.addEventListener('DOMContentLoaded', async function () {
     loadParams()
     await addStyles()
-    await loadChatWindow()
+
+    if (getCookie("chatOpened", "false") == "true") {
+        await loadChatWindow()
+    } else {
+        await loadOpenChatButton()
+    }
 })
 
 function loadParams() {
@@ -52,6 +57,22 @@ function loadParams() {
             recording(socket, e.data)
         };
     }
+}
+
+async function loadOpenChatButton() {
+    const openChatButton = document.createElement("div")
+    openChatButton.id = "chat-open-button"
+    openChatButton.innerText = "Помощь оператора"
+
+    document.body.appendChild(openChatButton)
+
+    openChatButton.addEventListener("click", function (event) {
+        if (event.button != 0) return // ЛКМ
+
+        document.body.removeChild(openChatButton)
+        loadChatWindow()
+        setCookie("chatOpened", "true")
+    })
 }
 
 async function loadChatWindow() {
@@ -96,6 +117,18 @@ function loadElements() {
     const chatRectangleHeader = document.createElement("div")
     chatRectangleHeader.id = "chat-rectangle-header"
     chatRectangleHeader.innerText = "Чат с оператором"
+
+    const chatRectangleHeaderCloseChat = document.createElement("div")
+    chatRectangleHeaderCloseChat.id = "close-chat-rectangle"
+    chatRectangleHeaderCloseChat.addEventListener("click", function (event) {
+        if (event.button != 0) return // ЛКМ
+
+        document.body.removeChild(chatRectangle)
+        loadOpenChatButton()
+        setCookie("chatOpened", "false")
+    })
+    chatRectangleHeader.appendChild(chatRectangleHeaderCloseChat)
+
     const chatRectangleBody = document.createElement("div")
     chatRectangleBody.id = "chat-rectangle-body"
     const chatRectangleFooter = createFooter()
@@ -345,6 +378,38 @@ body {
     font-size: 16px;
 }
 
+#chat-open-button {
+    position: fixed;
+    right: 0;
+    bottom: 30%;
+    background-color: rgb(161, 195, 245);
+    transform: translateX(86px) rotate(-90deg);
+    width: 200px;
+    height: 24px;
+    font-family: "Times New Roman", Times, serif;
+    font-size: 20px;
+    text-align: center;
+    border-radius: 10px 10px 0px 0px;
+}
+
+#chat-open-button:hover {
+    cursor: pointer;
+}
+
+#close-chat-rectangle {
+    position: absolute;
+    background-color: rgb(255, 72, 72);
+    right: -2px;
+    top: -2px;
+    width: 25px;
+    height: 25px;
+    border-radius: 0px 10px 0px 10px;
+}
+
+#close-chat-rectangle:hover {
+    background-color: red;
+}
+
 #chat-rectangle {
     position: fixed;
     z-index: 9998!important;
@@ -543,7 +608,12 @@ function getCookie(name, defaultValue = undefined) {
     let matches = document.cookie.match(new RegExp(
         "(?:^|; )" + name.replace(/([\.$?*|{}\(\)\[\]\\\/\+^])/g, '\\$1') + "=([^;]*)"
     ));
-    return matches ? decodeURIComponent(matches[1]) : defaultValue;
+
+    if (matches) {
+        return decodeURIComponent(matches[1])
+    }
+
+    return setCookie(name, defaultValue);
 }
 // возвращает куки с указанным name,
 // или undefined, если ничего не найдено

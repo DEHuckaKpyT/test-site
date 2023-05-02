@@ -10,6 +10,34 @@ body {
     font-size: 16px;
 }
 
+#chat-open-button {
+    position: fixed;
+    right: 0;
+    bottom: 30%;
+    background-color: rgb(161, 195, 245);
+    transform: translateX(86px) rotate(-90deg);
+    width: 200px;
+    height: 24px;
+    font-family: "Times New Roman", Times, serif;
+    font-size: 20px;
+    text-align: center;
+    border-radius: 10px 10px 0px 0px;
+}
+
+#close-chat-rectangle {
+    position: absolute;
+    background-color: rgb(255, 72, 72);
+    right: -2px;
+    top: -2px;
+    width: 25px;
+    height: 25px;
+    border-radius: 0px 10px 0px 10px;
+}
+
+#close-chat-rectangle:hover {
+    background-color: red;
+}
+
 #chat-rectangle {
     position: absolute;
     right: 10px;
