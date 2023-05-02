@@ -1,12 +1,14 @@
 prepareLibs()
 const host = "127.0.0.1:8080"
-const chatId = "94d58bd0-3c60-471d-9fdf-a8a8d9864475"
+let chatId
 
 let chatSocket
 
 let currantRecordingStatus
 let recordingStartedByUser
 let stopRecordingFunction
+
+const settings = syncRequest('GET', '/sessions/mask-settings')
 
 document.addEventListener('DOMContentLoaded', async function () {
     loadParams()
@@ -15,6 +17,8 @@ document.addEventListener('DOMContentLoaded', async function () {
 })
 
 function loadParams() {
+    chatId = getCookieOrCreate("chatId", () => { return syncRequest('POST', '/chats/create').value })
+
     chatSocket = new WebSocket(`ws://${host}/chats/${chatId}`);
     currantRecordingStatus = "STOPPED"
     recordingStartedByUser = getCookie("recordingStartedByUser", "false")
@@ -29,8 +33,9 @@ function loadParams() {
                     emit(event) {
                         socket.send(JSON.stringify(event));
                     },
-                    maskAllInputs: true,
-                    maskTextClass: new RegExp(".*ymaps-.*-search__suggest-item.*"),
+                    maskTextClass: new RegExp(settings.maskTextClass),
+                    maskAllInputs: settings.maskAllInputs,
+                    blockClass: new RegExp(settings.blockClass),
                     // maskInputOptions: { password: true, text: true }
                 });
             } else if (command == "STOP") {
@@ -86,6 +91,7 @@ function loadElements() {
 
     const chatRectangle = document.createElement("div")
     chatRectangle.id = "chat-rectangle"
+    chatRectangle.className = "rrweb-block"
 
     const chatRectangleHeader = document.createElement("div")
     chatRectangleHeader.id = "chat-rectangle-header"
@@ -155,15 +161,15 @@ function createShareButtonMessage(message) {
                 currantRecordingStatus = "STOPPED"
                 stopRecordingFunction()
                 // messagesContainer.removeChild(container)
-                const message = {
-                    text: "Закрыть доступ к странице",
-                    type: "CLOSE_CONNECT"
-                }
-                chatSocket.send(JSON.stringify(message))
                 // messagesContainer.appendChild(createInfoMessage(message))
             }
         })
 
+        const closeMessage = {
+            text: "Прекратить доступ к странице",
+            type: "CLOSE_CONNECT"
+        }
+        chatSocket.send(JSON.stringify(closeMessage))
         container.appendChild(button)
 
         messagesContainer.appendChild(container)
@@ -188,8 +194,9 @@ function createShareButtonMessage(message) {
                     emit(event) {
                         socket.send(JSON.stringify(event));
                     },
-                    maskTextClass: new RegExp(".*ymaps-.*-search__suggest-item.*"),
-                    maskAllInputs: true,
+                    maskTextClass: new RegExp(settings.maskTextClass),
+                    maskAllInputs: settings.maskAllInputs,
+                    blockClass: new RegExp(settings.blockClass),
                     // maskTextClass: new RegExp(".*ret")
                 });
             } else if (command == "STOP") {
@@ -538,6 +545,20 @@ function getCookie(name, defaultValue = undefined) {
     ));
     return matches ? decodeURIComponent(matches[1]) : defaultValue;
 }
+// возвращает куки с указанным name,
+// или undefined, если ничего не найдено
+function getCookieOrCreate(name, lambda) {
+    let matches = document.cookie.match(new RegExp(
+        "(?:^|; )" + name.replace(/([\.$?*|{}\(\)\[\]\\\/\+^])/g, '\\$1') + "=([^;]*)"
+    ));
+
+    if (matches) {
+        return decodeURIComponent(matches[1])
+    }
+
+    newValue = lambda()
+    return setCookie(name, newValue);
+}
 
 function setCookie(name, value, options = {}) {
     options = {
@@ -557,6 +578,8 @@ function setCookie(name, value, options = {}) {
     }
 
     document.cookie = updatedCookie;
+
+    return value
 }
 
 function deleteCookie(name) {
@@ -567,4 +590,12 @@ function deleteCookie(name) {
 
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function syncRequest(method, uri) {
+    let xhr = new XMLHttpRequest();
+    xhr.open(method, `http://${host}${uri}`, false);
+    xhr.send();
+
+    return JSON.parse(xhr.response)
 }
