@@ -632,8 +632,8 @@ function getCookieOrCreate(name, lambda) {
 
 function setCookie(name, value, options = {}) {
     options = {
+        // значения по умолчанию
         path: '/',
-        // при необходимости добавьте другие значения по умолчанию
         expires: "Tue, 19 Jan 2038 03:14:07 GMT"
     };
 

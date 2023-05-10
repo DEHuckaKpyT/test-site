@@ -1,22 +1,105 @@
 const host = "127.0.0.1:8080"
-const chatId = "94d58bd0-3c60-471d-9fdf-a8a8d9864475"
+// const chatId = "94d58bd0-3c60-471d-9fdf-a8a8d9864475"
 const authToken = 'abc123';
 
 const chatRectangle = document.createElement("div")
 // const options = document.createElement("div")
 
-const socket = new WebSocket(`ws://${host}/chats/${chatId}?access_token=${authToken}`);
-
 document.addEventListener('DOMContentLoaded', async function () {
     await prepareLibs()
     await addStyles()
-    await loadChatWindow()
+    switch (getCookie("chatPosition", "OPEN_CHATS_BUTTON")) {
+        case "OPEN_CHATS_BUTTON":
+            await loadOpenChatsListButton();
+            break;
+        case "CHATS_LIST":
+            await loadChatsList();
+            break;
+        case "CHAT_WINDOW":
+            await loadChatWindow(getCookie("lastOpenedChatId"));
+            break;
+    }
 })
 
-async function loadChatWindow() {
+async function loadOpenChatsListButton() {
+    const openChatButton = document.createElement("div")
+    openChatButton.id = "chat-open-button"
+    openChatButton.innerText = "Чаты с пользователями"
+
+    document.body.appendChild(openChatButton)
+
+    openChatButton.addEventListener("click", async function (event) {
+        if (event.button != 0) return // ЛКМ
+
+        document.body.removeChild(openChatButton)
+        await loadChatsList()
+        setCookie("chatPosition", "CHATS_LIST")
+    })
+}
+
+async function loadChatsList() {
+    const chatsList = document.createElement("div")
+    chatsList.id = "chats-list"
+    const chatsListHeader = document.createElement("div")
+    chatsListHeader.id = "chats-list-header"
+    const chatsListBody = document.createElement("div")
+    chatsListBody.id = "chats-list-body"
+    const closeChatsList = document.createElement("div")
+    closeChatsList.id = "close-chats-list"
+    closeChatsList.addEventListener("click", async function (event) {
+        if (event.button != 0) return // ЛКМ
+
+        document.body.removeChild(chatsList)
+        await loadOpenChatsListButton()
+        setCookie("chatPosition", "OPEN_CHATS_BUTTON")
+    })
+
+    chatsListHeader.appendChild(closeChatsList)
+    chatsList.appendChild(chatsListHeader)
+    chatsList.appendChild(chatsListBody)
+    document.body.appendChild(chatsList)
+
+    await loadLastChatsMessages()
+}
+
+async function loadLastChatsMessages() {
+    const chatsListBody = document.getElementById("chats-list-body")
+
+    const response = await fetch(`http://${host}/chats/last-messages`, {
+        headers: {
+            Authentication: authToken
+        }
+    })
+    const messages = await response.json()
+
+    for (const message of messages) {
+        const messageContainer = document.createElement("div")
+        messageContainer.className = "chats-list-container-message"
+        const textMessage = document.createElement("div")
+        textMessage.innerText = message.text
+        if (message.authorId) {
+            textMessage.className = "chats-list-right-message"
+        } else {
+            textMessage.className = "chats-list-left-message"
+        }
+        textMessage.addEventListener("click", async function (event) {
+            if (event.button != 0) return // ЛКМ
+
+            await loadChatWindow(message.chatId)
+            document.body.removeChild(chatsListBody.parentNode)
+            setCookie("chatPosition", "CHAT_WINDOW")
+            setCookie("lastOpenedChatId", message.chatId)
+        })
+
+        messageContainer.appendChild(textMessage)
+        chatsListBody.appendChild(messageContainer)
+    }
+}
+
+async function loadChatWindow(chatId) {
     loadElements()
-    await loadOldMessages()
-    startListenToNewMessages()
+    await loadOldMessages(chatId)
+    startListenToNewMessages(chatId)
 }
 
 function loadElements() {
@@ -64,6 +147,18 @@ function loadElements() {
     chatRectangleHeader.innerText = "Чат с клиентом"
     const chatRectangleBody = document.createElement("div")
     chatRectangleBody.id = "chat-rectangle-body"
+
+    const chatRectangleHeaderCloseChat = document.createElement("div")
+    chatRectangleHeaderCloseChat.id = "close-chat-rectangle"
+    chatRectangleHeaderCloseChat.addEventListener("click", async function (event) {
+        if (event.button != 0) return // ЛКМ
+
+        document.body.removeChild(chatRectangle)
+        await loadChatsList()
+        setCookie("chatPosition", "CHATS_LIST")
+    })
+    chatRectangleHeader.appendChild(chatRectangleHeaderCloseChat)
+
     const chatRectangleFooter = createFooter()
 
     chatRectangle.appendChild(chatRectangleHeader)
@@ -83,7 +178,7 @@ async function sendMessage(value) {
     messagesContainer.scrollTo(0, messagesContainer.scrollHeight)
 }
 
-async function loadOldMessages() {
+async function loadOldMessages(chatId) {
     const messagesContainer = document.getElementById("chat-rectangle-body")
 
     const response = await fetch(`http://${host}/chats/${chatId}/messages/list`, {
@@ -192,8 +287,9 @@ function createErrorMessage(error) {
     return div
 }
 
-function startListenToNewMessages() {
+function startListenToNewMessages(chatId) {
     const messagesContainer = document.getElementById("chat-rectangle-body")
+    const socket = new WebSocket(`ws://${host}/chats/${chatId}?access_token=${authToken}`)
 
     socket.onmessage = function (event) {
         const newMessage = JSON.parse(event.data)
@@ -672,17 +768,36 @@ body {
 
 // возвращает куки с указанным name,
 // или undefined, если ничего не найдено
-function getCookie(name) {
+function getCookie(name, defaultValue = undefined) {
     let matches = document.cookie.match(new RegExp(
         "(?:^|; )" + name.replace(/([\.$?*|{}\(\)\[\]\\\/\+^])/g, '\\$1') + "=([^;]*)"
     ));
-    return matches ? decodeURIComponent(matches[1]) : undefined;
+
+    if (matches) {
+        return decodeURIComponent(matches[1])
+    }
+
+    return setCookie(name, defaultValue);
+}
+// возвращает куки с указанным name,
+// или undefined, если ничего не найдено
+function getCookieOrCreate(name, lambda) {
+    let matches = document.cookie.match(new RegExp(
+        "(?:^|; )" + name.replace(/([\.$?*|{}\(\)\[\]\\\/\+^])/g, '\\$1') + "=([^;]*)"
+    ));
+
+    if (matches) {
+        return decodeURIComponent(matches[1])
+    }
+
+    newValue = lambda()
+    return setCookie(name, newValue);
 }
 
 function setCookie(name, value, options = {}) {
     options = {
+        // значения по умолчанию
         path: '/',
-        // при необходимости добавьте другие значения по умолчанию
         expires: "Tue, 19 Jan 2038 03:14:07 GMT"
     };
 
@@ -697,10 +812,24 @@ function setCookie(name, value, options = {}) {
     }
 
     document.cookie = updatedCookie;
+
+    return value
 }
 
 function deleteCookie(name) {
     setCookie(name, "", {
         'max-age': 0
     })
+}
+
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function syncRequest(method, uri) {
+    let xhr = new XMLHttpRequest();
+    xhr.open(method, `http://${host}${uri}`, false);
+    xhr.send();
+
+    return JSON.parse(xhr.response)
 }
