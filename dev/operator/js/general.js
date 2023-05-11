@@ -1,9 +1,7 @@
 const host = "127.0.0.1:8080"
-// const chatId = "94d58bd0-3c60-471d-9fdf-a8a8d9864475"
 const authToken = 'abc123';
 
-const chatRectangle = document.createElement("div")
-// const options = document.createElement("div")
+let socket
 
 document.addEventListener('DOMContentLoaded', async function () {
     await prepareLibs()
@@ -97,12 +95,12 @@ async function loadLastChatsMessages() {
 }
 
 async function loadChatWindow(chatId) {
-    loadElements()
+    loadElements(chatId)
     await loadOldMessages(chatId)
     startListenToNewMessages(chatId)
 }
 
-function loadElements() {
+function loadElements(chatId) {
     function createFooter() {
         const chatRectangleFooter = document.createElement("div")
         chatRectangleFooter.id = "chat-rectangle-footer"
@@ -133,13 +131,55 @@ function loadElements() {
             hideSendOptions()
         })
 
+        const options = document.createElement("div")
+        options.id = "send-message-options"
+        options.innerText = "Отправить предложение поделиться страницей"
+        options.addEventListener("click", async function (event) {
+            const messagesContainer = document.getElementById("chat-rectangle-body")
+            messagesContainer.appendChild(createConnectButtonMessage(chatId))
+            messagesContainer.scrollTo(0, messagesContainer.scrollHeight)
+            const message = {
+                text: "Просмотреть страницу",
+                type: "SHARE_PAGE"
+            }
+            socket.send(JSON.stringify(message))
+        })
+        let cursorOnButton = false
+        let cursorOnOptions = false
+
+        function showSendOptions() {
+            options.addEventListener("mouseover", optionsMouseOver)
+            options.addEventListener("mouseout", optionsMouseOut)
+            const chatRectangle = document.getElementById("chat-rectangle")
+            chatRectangle.appendChild(options)
+        }
+
+        async function hideSendOptions() {
+            await sleep(1500)
+            if (!cursorOnButton & !cursorOnOptions) {
+                options.removeEventListener("mouseover", optionsMouseOver)
+                options.removeEventListener("mouseout", optionsMouseOut)
+                const chatRectangle = document.getElementById("chat-rectangle")
+                chatRectangle.removeChild(options)
+            }
+        }
+
+        function optionsMouseOver(event) {
+            cursorOnOptions = true
+        }
+
+        function optionsMouseOut(event) {
+            cursorOnOptions = false
+            hideSendOptions()
+        }
+
         chatRectangleFooter.appendChild(chatRectangleFooterInput)
         chatRectangleFooter.appendChild(chatRectangleFooterSendMessageButton)
 
         return chatRectangleFooter
     }
 
-    // const chatRectangle = document.createElement("div")
+    const chatRectangle = document.createElement("div")
     chatRectangle.id = "chat-rectangle"
 
     const chatRectangleHeader = document.createElement("div")
@@ -200,9 +240,9 @@ function createMessage(message) {
         case "TEXT":
             return createTextMessage(message)
         case "SHARE_PAGE":
-            return createConnectButtonMessage(message)
+            return createConnectButtonMessage(message.chatId)
         case "CONNECT_PAGE":
-            return createConnectButtonMessage(message)
+            return createConnectButtonMessage(message.chatId)
         case "CLOSE_CONNECT":
             return createInfoMessage(message)
         case "ERROR":
@@ -222,7 +262,7 @@ function createInfoMessage(message) {
     return div
 }
 
-function createConnectButtonMessage() {
+function createConnectButtonMessage(chatId) {
     const container = document.createElement("div")
     container.className = "container-message"
 
@@ -289,7 +329,7 @@ function createErrorMessage(error) {
 
 function startListenToNewMessages(chatId) {
     const messagesContainer = document.getElementById("chat-rectangle-body")
-    const socket = new WebSocket(`ws://${host}/chats/${chatId}?access_token=${authToken}`)
+    socket = new WebSocket(`ws://${host}/chats/${chatId}?access_token=${authToken}`)
 
     socket.onmessage = function (event) {
         const newMessage = JSON.parse(event.data)
@@ -301,57 +341,6 @@ function startListenToNewMessages(chatId) {
         messagesContainer.appendChild(createErrorMessage("Отключён от сервера"))
         messagesContainer.scrollTo(0, messagesContainer.scrollHeight)
     }
-}
-
-const options = document.createElement("div")
-options.id = "send-message-options"
-options.innerText = "Отправить предложение поделиться страницей"
-options.addEventListener("click", async function (event) {
-    const messagesContainer = document.getElementById("chat-rectangle-body")
-    messagesContainer.appendChild(createConnectButtonMessage())
-    messagesContainer.scrollTo(0, messagesContainer.scrollHeight)
-    const message = {
-        text: "Просмотреть страницу",
-        type: "SHARE_PAGE"
-    }
-    socket.send(JSON.stringify(message))
-})
-let cursorOnButton = false
-let cursorOnOptions = false
-
-function showSendOptions() {
-    options.addEventListener("mouseover", optionsMouseOver)
-    options.addEventListener("mouseout", optionsMouseOut)
-    chatRectangle.appendChild(options)
-}
-
-async function hideSendOptions() {
-    await sleep(1500)
-    if (!cursorOnButton & !cursorOnOptions) {
-        options.removeEventListener("mouseover", optionsMouseOver)
-        options.removeEventListener("mouseout", optionsMouseOut)
-        chatRectangle.removeChild(options)
-    }
-}
-
-function optionsMouseOver(event) {
-    cursorOnOptions = true
-}
-
-function optionsMouseOut(event) {
-    cursorOnOptions = false
-    hideSendOptions()
-}
-
-
-
-
-
-
-
-
-function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 async function prepareLibs() {
@@ -725,6 +714,15 @@ body {
     border: 3px solid rgb(226, 233, 240);
 }
 
+.replayer-wrapper{
+    position: absolute;
+    top: -4px;
+    left: -4px;
+    margin: 0px;
+    padding: 0px;
+    border-width: 0px;
+}
+
 /* width */
 #chat-rectangle *::-webkit-scrollbar {
     width: 10px;
@@ -832,4 +830,8 @@ function syncRequest(method, uri) {
     xhr.send();
 
     return JSON.parse(xhr.response)
+}
+
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
 }
