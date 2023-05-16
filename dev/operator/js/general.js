@@ -243,7 +243,7 @@ function createMessage(message) {
             return createConnectButtonMessage(message.chatId)
         case "CONNECT_PAGE":
             return createConnectButtonMessage(message.chatId)
-        case "CLOSE_CONNECT":
+        case "CONNECTION_CLOSED":
             return createInfoMessage(message)
         case "ERROR":
             return createErrorMessage(message.text)
@@ -255,8 +255,8 @@ function createMessage(message) {
 function createInfoMessage(message) {
     const div = document.createElement("div")
     div.className = "container-message-green"
-    if (message.type == "CLOSE_CONNECT") {
-        div.innerHTML = `<b><u class="notification-text">Пользователь закрыл доступ к своей странице</u></b>`
+    if (message.type == "CONNECTION_CLOSED") {
+        div.innerHTML = `<b><u class="notification-text">Доступ к просмотру страницы был закрыт</u></b>`
     }
 
     return div
@@ -272,21 +272,22 @@ function createConnectButtonMessage(chatId) {
     button.addEventListener("click", async function () {
         const socket = new WebSocket(`ws://${host}/sessions/${chatId}?access_token=${authToken}`);
         const replayer = new rrweb.Replayer([], {
-            // target: document.getElementById("custom-replay-frame"),
             liveMode: true,
-            // insertStyleRules: [
-            //     ".replayer-wrapper{ top: 100px; }"
-            // ]
         })
 
         replayer.startLive();
 
         socket.onopen = function (e) {
-            socket.send("START");
+            socket.send(JSON.stringify({
+                command: "CONNECTED"
+            }));
         }
 
         socket.onmessage = function (event) {
-            replayer.addEvent(JSON.parse(event.data));
+            const data = JSON.parse(event.data)
+            if (data.command == "TRANSPORT") {
+                replayer.addEvent(data.content);
+            }
         }
     })
 
