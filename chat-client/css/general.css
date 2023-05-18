@@ -9,6 +9,111 @@ body {
     font-size: 16px;
 }
 
+#confirm-form {
+    position: fixed;
+    width: 500px;
+    height: 300px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: aliceblue;
+    border: 2px solid rgb(174, 174, 255);
+    border-radius: 10px 10px 10px 10px;
+    font-family: "Times New Roman", Times, serif;
+    /* line-height: 16px; */
+    font-size: 16px;
+}
+
+#close-confirm-form {
+    position: absolute;
+    background-color: rgb(255, 72, 72);
+    right: -2px;
+    top: -2px;
+    width: 25px;
+    height: 25px;
+    border-radius: 0px 10px 0px 10px;
+}
+
+#close-confirm-form:hover {
+    background-color: red;
+}
+
+#confirm-form-text {
+    position: absolute;
+    top: 28px;
+    left: 17px;
+    right: 17px;
+    bottom: 100px;
+    padding: 5px;
+    border: 2px solid rgb(174, 174, 255);
+    border-radius: 10px 5px 5px 10px;
+    background-color: rgb(255, 255, 255);
+    word-break: break-word;
+    overflow-y: scroll;
+    overflow-x: hidden;
+}
+
+#confirm-form-checked-read {
+    position: absolute;
+    bottom: 70px;
+    left: 30px;
+}
+
+#confirm-form-checked-label-read {
+    position: absolute;
+    bottom: 70px;
+    left: 60px;
+}
+
+#confirm-form-checked-accept {
+    position: absolute;
+    bottom: 50px;
+    left: 30px;
+}
+
+#confirm-form-checked-label-accept {
+    position: absolute;
+    bottom: 50px;
+    left: 60px;
+}
+
+#confirm-form-accept-button{
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: 25px;
+    width: 300px;
+    border-radius: 10px;
+    color: white;
+    background-color: rgb(49, 110, 241);
+}
+
+#confirm-form-accept-button:hover{
+    background-color: rgb(17, 84, 230);
+}
+#confirm-form-accept-button:active {
+    color: #1d59fc;
+    background-color: rgb(180, 200, 245);
+}
+
+#confirm-form-cancel-button{
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: 0px;
+    border-radius: 10px;
+    color: white;
+    background-color: rgb(255, 72, 72);
+}
+
+#confirm-form-cancel-button:hover{
+    background-color: red;
+}
+#confirm-form-cancel-button:active {
+    color: #fc1d1d;
+    background-color: rgb(245, 180, 180);
+}
+
 #chat-open-button {
     position: fixed;
     right: 0;
@@ -387,5 +492,25 @@ body {
 
 /* Handle on hover */
 #chats-list *::-webkit-scrollbar-thumb:hover {
+    background: rgb(82, 113, 255);
+}
+
+/* width */
+#confirm-form *::-webkit-scrollbar {
+    width: 10px;
+}
+
+/* Track */
+#confirm-form *::-webkit-scrollbar-track {
+    background: #d1d5ff;
+}
+
+/* Handle */
+#confirm-form *::-webkit-scrollbar-thumb {
+    background: rgb(142, 167, 250);
+}
+
+/* Handle on hover */
+#confirm-form *::-webkit-scrollbar-thumb:hover {
     background: rgb(82, 113, 255);
 }
