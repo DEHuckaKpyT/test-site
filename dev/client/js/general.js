@@ -29,37 +29,88 @@ function loadParams() {
     recordingStartedByUser = getCookie("recordingStartedByUser", "false")
 
     if (recordingStartedByUser == "true") {
-        const socket = new WebSocket(`ws://${host}/sessions/${chatId}`);
-
-        function recording(socket, command) {
-            if (recordingStartedByUser == "true" && command == "CONNECTED" && currantRecordingStatus != "STARTED") {
-                currantRecordingStatus = "STARTED"
-                stopRecordingFunction = rrweb.record({
-                    emit(event) {
-                        socket.send(JSON.stringify({
-                            command: "TRANSPORT",
-                            content: event
-                        }));
-                    },
-                    maskTextClass: new RegExp(settings.maskTextClass),
-                    maskAllInputs: settings.maskAllInputs,
-                    blockClass: new RegExp(settings.blockClass),
-                });
-            } else if (command == "DISCONNECTED") {
-                stopRecordingFunction()
-                currantRecordingStatus = "STOPPED"
-            }
-        }
-
-        socket.onopen = function (e) {
-            recording(socket, "CONNECTED")
-        };
-        socket.onmessage = function (e) {
-            const data = JSON.parse(e.data)
-            console.log(data)
-            recording(socket, data.command)
-        };
+        startRecording()
     }
+}
+
+async function loadAcceptWindow() {
+    const confirmForm = document.createElement("div")
+    confirmForm.id = "confirm-form"
+
+    const closeConfirmForm = document.createElement("div")
+    closeConfirmForm.id = "close-confirm-form"
+    confirmForm.appendChild(closeConfirmForm)
+
+    const confirmFormText = document.createElement("div")
+    confirmFormText.id = "confirm-form-text"
+    confirmFormText.innerText = "Высогалсны на бла бла бла"
+    confirmForm.appendChild(confirmFormText)
+
+    const checkbox1input = document.createElement("input")
+    const checkbox2input = document.createElement("input")
+    const acceptButton = document.createElement("button")
+
+    const checkbox1 = document.createElement("div")
+    checkbox1input.id = "confirm-form-checked-read"
+    checkbox1input.type = "checkbox"
+    checkbox1input.addEventListener("change", function (event) {
+        if (checkbox1input.checked && checkbox2input.checked) {
+            acceptButton.disabled = false
+        } else {
+            acceptButton.disabled = true
+        }
+    })
+    const checkbox1label = document.createElement("label")
+    checkbox1label.id = "confirm-form-checked-label-read"
+    checkbox1label.htmlFor = "confirm-form-checked-read"
+    checkbox1label.innerText = "Я прочитал условия"
+    checkbox1.appendChild(checkbox1input)
+    checkbox1.appendChild(checkbox1label)
+    confirmForm.appendChild(checkbox1)
+
+    const checkbox2 = document.createElement("div")
+    checkbox2input.id = "confirm-form-checked-accept"
+    checkbox2input.type = "checkbox"
+    checkbox2input.addEventListener("change", function (event) {
+        if (checkbox1input.checked && checkbox2input.checked) {
+            acceptButton.disabled = false
+        } else {
+            acceptButton.disabled = true
+        }
+    })
+    const checkbox2label = document.createElement("label")
+    checkbox2label.id = "confirm-form-checked-label-accept"
+    checkbox2label.htmlFor = "confirm-form-checked-accept"
+    checkbox2label.innerText = "Я согласен с условиями"
+    checkbox2.appendChild(checkbox2input)
+    checkbox2.appendChild(checkbox2label)
+    confirmForm.appendChild(checkbox2)
+
+    const cancelButton = document.createElement("button")
+    cancelButton.id = "confirm-form-cancel-button"
+    cancelButton.innerText = "Продолжить без демонстрации"
+    cancelButton.addEventListener("click", function (event) {
+        if (event.button != 0) return // ЛКМ
+
+        document.body.removeChild(confirmForm)
+    })
+
+    confirmForm.appendChild(cancelButton)
+
+    acceptButton.id = "confirm-form-accept-button"
+    acceptButton.disabled = true
+    acceptButton.innerText = "Предоставить доступ к просмотру страницы"
+    acceptButton.addEventListener("click", function (event) {
+        if (event.button != 0) return // ЛКМ
+
+        syncRequest('POST', `/chats/${chatId}/accept-sharing`)
+        document.body.removeChild(confirmForm)
+
+        startRecording({})
+    })
+    confirmForm.appendChild(acceptButton)
+
+    document.body.appendChild(confirmForm)
 }
 
 async function loadOpenChatButton() {
@@ -184,57 +235,65 @@ function createMessage(message) {
 }
 
 function createShareButtonMessage(message) {
-
     const container = document.createElement("div")
     container.className = "container-message"
 
     const button = document.createElement("button")
     button.className = "active-button"
     button.innerText = "Поделиться страницей"
-    button.addEventListener("click", async function () {
-        if (currantRecordingStatus == "STARTED") return;
+    button.addEventListener("click", async function (event) {
+        const accepted = syncRequest('GET', `/chats/${chatId}/is-sharing-accepted`).value
 
-        const socket = new WebSocket(`ws://${host}/sessions/${chatId}`);
-
-        function recording(socket, command) {
-            if (recordingStartedByUser == "true" && command == "CONNECTED" && currantRecordingStatus != "STARTED") {
-                currantRecordingStatus = "STARTED"
-                createTempCloseButtonMessage(message)
-
-                stopRecordingFunction = rrweb.record({
-                    emit(event) {
-                        socket.send(JSON.stringify({
-                            command: "TRANSPORT",
-                            content: event
-                        }));
-                    },
-                    maskTextClass: new RegExp(settings.maskTextClass),
-                    maskAllInputs: settings.maskAllInputs,
-                    blockClass: new RegExp(settings.blockClass)
-                });
-            } else if (command == "DISCONNECTED") {
-                stopRecordingFunction()
-                currantRecordingStatus = "STOPPED"
-            }
+        if (accepted) {
+            await startRecording(message)
+        } else {
+            await loadAcceptWindow()
         }
-
-        recordingStartedByUser = "true"
-        setCookie("recordingStartedByUser", "true")
-
-        socket.onopen = function (e) {
-            recording(socket, "CONNECTED")
-        };
-        socket.onmessage = function (e) {
-            const data = JSON.parse(e.data)
-            console.log(data)
-            recording(socket, data.command)
-        };
-
     })
 
     container.appendChild(button)
 
     return container
+}
+
+async function startRecording(message = undefined) {
+    if (currantRecordingStatus == "STARTED") return;
+
+    const socket = new WebSocket(`ws://${host}/sessions/${chatId}`);
+
+    function recording(socket, command) {
+        if (recordingStartedByUser == "true" && command == "CONNECTED" && currantRecordingStatus != "STARTED") {
+            currantRecordingStatus = "STARTED"
+            if (message) createTempCloseButtonMessage(message)
+
+            stopRecordingFunction = rrweb.record({
+                emit(event) {
+                    socket.send(JSON.stringify({
+                        command: "TRANSPORT",
+                        content: event
+                    }));
+                },
+                maskTextClass: new RegExp(settings.maskTextClass),
+                maskAllInputs: settings.maskAllInputs,
+                blockClass: new RegExp(settings.blockClass)
+            });
+        } else if (command == "DISCONNECTED") {
+            stopRecordingFunction()
+            currantRecordingStatus = "STOPPED"
+        }
+    }
+
+    recordingStartedByUser = "true"
+    setCookie("recordingStartedByUser", "true")
+
+    socket.onopen = function (e) {
+        recording(socket, "CONNECTED")
+    };
+    socket.onmessage = function (e) {
+        const data = JSON.parse(e.data)
+        console.log(data)
+        recording(socket, data.command)
+    };
 }
 
 function createTempCloseButtonMessage(message) {
@@ -396,6 +455,119 @@ const styles = `
 body {
     font-family: "Times New Roman", Times, serif;
     font-size: 16px;
+}
+
+#confirm-form {
+    position: fixed;
+    width: 500px;
+    height: 300px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: aliceblue;
+    border: 2px solid rgb(174, 174, 255);
+    border-radius: 10px 10px 10px 10px;
+    font-family: "Times New Roman", Times, serif;
+    /* line-height: 16px; */
+    font-size: 16px;
+}
+
+#close-confirm-form {
+    position: absolute;
+    background-color: rgb(255, 72, 72);
+    right: -2px;
+    top: -2px;
+    width: 25px;
+    height: 25px;
+    border-radius: 0px 10px 0px 10px;
+}
+
+#close-confirm-form:hover {
+    background-color: red;
+}
+
+#confirm-form-text {
+    position: absolute;
+    top: 28px;
+    left: 17px;
+    right: 17px;
+    bottom: 100px;
+    padding: 5px;
+    border: 2px solid rgb(174, 174, 255);
+    border-radius: 10px 5px 5px 10px;
+    background-color: rgb(255, 255, 255);
+    word-break: break-word;
+    overflow-y: scroll;
+    overflow-x: hidden;
+}
+
+#confirm-form-checked-read {
+    position: absolute;
+    bottom: 70px;
+    left: 30px;
+}
+
+#confirm-form-checked-label-read {
+    position: absolute;
+    bottom: 70px;
+    left: 60px;
+}
+
+#confirm-form-checked-accept {
+    position: absolute;
+    bottom: 50px;
+    left: 30px;
+}
+
+#confirm-form-checked-label-accept {
+    position: absolute;
+    bottom: 50px;
+    left: 60px;
+}
+
+#confirm-form-accept-button{
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: 25px;
+    width: 300px;
+    border-radius: 10px;
+    color: white;
+    background-color: rgb(49, 110, 241);
+}
+
+#confirm-form-accept-button:hover:enabled{
+    background-color: rgb(17, 84, 230);
+}
+
+#confirm-form-accept-button:active:enabled {
+    color: #1d59fc;
+    background-color: rgb(180, 200, 245);
+}
+
+#confirm-form-accept-button:disabled {
+    color: #1d59fc;
+    color: black;
+    background-color: grey;
+}
+
+#confirm-form-cancel-button{
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: 0px;
+    border-radius: 10px;
+    color: white;
+    background-color: rgb(255, 72, 72);
+}
+
+#confirm-form-cancel-button:hover{
+    background-color: red;
+}
+
+#confirm-form-cancel-button:active {
+    color: #fc1d1d;
+    background-color: rgb(245, 180, 180);
 }
 
 #chat-open-button {
@@ -687,5 +859,7 @@ function syncRequest(method, uri) {
     xhr.open(method, `http://${host}${uri}`, false);
     xhr.send();
 
-    return JSON.parse(xhr.response)
+    if (xhr.response != "") {
+        return JSON.parse(xhr.response)
+    }
 }
