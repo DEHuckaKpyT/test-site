@@ -135,9 +135,9 @@ function loadElements(chatId) {
         options.id = "send-message-options"
         options.innerText = "Отправить предложение поделиться страницей"
         options.addEventListener("click", async function (event) {
-            const messagesContainer = document.getElementById("chat-rectangle-body")
-            messagesContainer.appendChild(createConnectButtonMessage(chatId))
-            messagesContainer.scrollTo(0, messagesContainer.scrollHeight)
+            // const messagesContainer = document.getElementById("chat-rectangle-body")
+            // messagesContainer.appendChild(createConnectButtonMessage(chatId))
+            // messagesContainer.scrollTo(0, messagesContainer.scrollHeight)
             const message = {
                 text: "Просмотреть страницу",
                 type: "SHARE_PAGE"
@@ -239,10 +239,10 @@ function createMessage(message) {
     switch (message.type) {
         case "TEXT":
             return createTextMessage(message)
-        case "SHARE_PAGE":
-            return createConnectButtonMessage(message.chatId)
+        // case "SHARE_PAGE":
+        //     return createConnectButtonMessage(message.chatId)
         case "CONNECT_PAGE":
-            return createConnectButtonMessage(message.chatId)
+            return createConnectButtonMessage(message)
         case "CONNECTION_CLOSED":
             return createInfoMessage(message)
         case "ERROR":
@@ -256,13 +256,17 @@ function createInfoMessage(message) {
     const div = document.createElement("div")
     div.className = "container-message-green"
     if (message.type == "CONNECTION_CLOSED") {
-        div.innerHTML = `<b><u class="notification-text">Доступ к просмотру страницы был закрыт</u></b>`
+        let notification = document.createElement("u")
+        notification.className = "notification-text"
+        notification.innerText =
+            div.innerHTML = `<b><u class="notification-text">Доступ к просмотру страницы был закрыт\n
+        <a href="http://${host}/replayer?sessionId=${message.text}">Посмотреть запись</a></u></b>`
     }
 
     return div
 }
 
-function createConnectButtonMessage(chatId) {
+function createConnectButtonMessage(message) {
     const container = document.createElement("div")
     container.className = "container-message"
 
@@ -270,7 +274,7 @@ function createConnectButtonMessage(chatId) {
     button.className = "active-button"
     button.innerText = "Просмотреть страницу"
     button.addEventListener("click", async function () {
-        const socket = new WebSocket(`ws://${host}/sessions/${chatId}?access_token=${authToken}`);
+        const socket = new WebSocket(`ws://${host}/sessions/${message.text}?access_token=${authToken}`);
         const replayer = new rrweb.Replayer([], {
             liveMode: true,
         })

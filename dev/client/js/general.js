@@ -1,6 +1,7 @@
 prepareLibs()
 const host = "127.0.0.1:8080"
 let chatId
+let sessionId
 
 let chatSocket
 
@@ -23,6 +24,7 @@ document.addEventListener('DOMContentLoaded', async function () {
 
 function loadParams() {
     chatId = getCookieOrCreate("chatId", () => { return syncRequest('POST', '/chats/create').value })
+    sessionId = getCookie("sessionId")
 
     chatSocket = new WebSocket(`ws://${host}/chats/${chatId}`);
     currantRecordingStatus = "STOPPED"
@@ -106,7 +108,7 @@ async function loadAcceptWindow() {
         syncRequest('POST', `/chats/${chatId}/accept-sharing`)
         document.body.removeChild(confirmForm)
 
-        startRecording({})
+        startRecording(true, {})
     })
     confirmForm.appendChild(acceptButton)
 
@@ -245,7 +247,7 @@ function createShareButtonMessage(message) {
         const accepted = syncRequest('GET', `/chats/${chatId}/is-sharing-accepted`).value
 
         if (accepted) {
-            await startRecording(message)
+            await startRecording(true, message)
         } else {
             await loadAcceptWindow()
         }
@@ -256,15 +258,19 @@ function createShareButtonMessage(message) {
     return container
 }
 
-async function startRecording(message = undefined) {
+async function startRecording(createNewSession = false, message = undefined) {
     if (currantRecordingStatus == "STARTED") return;
 
-    const socket = new WebSocket(`ws://${host}/sessions/${chatId}`);
+    if (createNewSession) {
+        sessionId = syncRequest('POST', `/sessions/create`, { chatId: chatId }).id
+        setCookie("sessionId", sessionId)
+    }
+
+    const socket = new WebSocket(`ws://${host}/sessions/${sessionId}`);
 
     function recording(socket, command) {
         if (recordingStartedByUser == "true" && command == "CONNECTED" && currantRecordingStatus != "STARTED") {
             currantRecordingStatus = "STARTED"
-            if (message) createTempCloseButtonMessage(message)
 
             stopRecordingFunction = rrweb.record({
                 emit(event) {
@@ -285,6 +291,14 @@ async function startRecording(message = undefined) {
 
     recordingStartedByUser = "true"
     setCookie("recordingStartedByUser", "true")
+
+    if (createNewSession && message) {
+        createTempCloseButtonMessage(message)
+        chatSocket.send(JSON.stringify({
+            text: sessionId,
+            type: "CONNECT_PAGE"
+        }))
+    }
 
     socket.onopen = function (e) {
         recording(socket, "CONNECTED")
@@ -311,14 +325,14 @@ function createTempCloseButtonMessage(message) {
             currantRecordingStatus = "STOPPED"
             stopRecordingFunction()
             const message = {
-                text: "Пользователь закрыл доступ к своей странице",
+                text: sessionId,
                 type: "CONNECTION_CLOSED"
             }
             chatSocket.send(JSON.stringify(message))
-            // messagesContainer.removeChild(container)
-            // messagesContainer.appendChild(createInfoMessage(message))
             messagesContainer.appendChild(createInfoMessage("CONNECTION_CLOSED"))
             messagesContainer.scrollTo(0, messagesContainer.scrollHeight)
+
+            syncRequest('POST', `/sessions/${sessionId}/finish`)
         }
     })
 
@@ -347,10 +361,12 @@ function createCloseButtonMessage(message) {
             currantRecordingStatus = "STOPPED"
             stopRecordingFunction()
             const message = {
-                text: "Пользователь закрыл доступ к своей странице",
+                text: sessionId,
                 type: "CONNECTION_CLOSED"
             }
             chatSocket.send(JSON.stringify(message))
+            
+            syncRequest('POST', `/sessions/${sessionId}/finish`)
         }
     })
 
@@ -854,10 +870,16 @@ function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-function syncRequest(method, uri) {
+function syncRequest(method, uri, body = null) {
     let xhr = new XMLHttpRequest();
     xhr.open(method, `http://${host}${uri}`, false);
-    xhr.send();
+
+    if (body != null) {
+        xhr.setRequestHeader('Content-Type', 'application/json; charset=utf-8')
+        body = JSON.stringify(body)
+    }
+
+    xhr.send(body);
 
     if (xhr.response != "") {
         return JSON.parse(xhr.response)
