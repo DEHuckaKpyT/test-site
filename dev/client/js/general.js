@@ -329,7 +329,7 @@ function createTempCloseButtonMessage(message) {
                 type: "CONNECTION_CLOSED"
             }
             chatSocket.send(JSON.stringify(message))
-            messagesContainer.appendChild(createInfoMessage("CONNECTION_CLOSED"))
+            messagesContainer.appendChild(createInfoMessage(message))
             messagesContainer.scrollTo(0, messagesContainer.scrollHeight)
 
             syncRequest('POST', `/sessions/${sessionId}/finish`)
@@ -365,6 +365,10 @@ function createCloseButtonMessage(message) {
                 type: "CONNECTION_CLOSED"
             }
             chatSocket.send(JSON.stringify(message))
+
+            const messagesContainer = document.getElementById("chat-rectangle-body")
+            messagesContainer.appendChild(createInfoMessage(message))
+            messagesContainer.scrollTo(0, messagesContainer.scrollHeight)
             
             syncRequest('POST', `/sessions/${sessionId}/finish`)
         }
@@ -410,9 +414,9 @@ function createErrorMessage(error) {
 function createInfoMessage(message) {
     const div = document.createElement("div")
     div.className = "container-message-green"
-    if (message.type = "CLOSE_CONNECT") {
-        div.innerHTML = `<b><u class="notification-text">Доступ к просмотру страницы был закрыт</u></b>`
-    }
+    // if (message.type = "CLOSE_CONNECT") {
+    //     div.innerHTML = `<b><u class="notification-text">Доступ к просмотру страницы был закрыт</u></b>`
+    // }
     if (message.type = "CONNECTION_CLOSED") {
         div.innerHTML = `<b><u class="notification-text">Доступ к просмотру страницы был закрыт</u></b>`
     }
