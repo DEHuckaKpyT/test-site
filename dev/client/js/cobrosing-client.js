@@ -45,7 +45,12 @@ async function loadAcceptWindow() {
 
     const confirmFormText = document.createElement("div")
     confirmFormText.id = "confirm-form-text"
-    confirmFormText.innerText = "Высогалсны на бла бла бла"
+    confirmFormText.innerText = "При включении функцияи демонстрации Вашей страницы оператор сможет получить доступ к просмотру копии вашей страницы, в которой:\n" +
+        " - оператор видит все объекты на странице;\n" + 
+        " - оператор видит движение курсора мыши, если он находится на странице;\n" + 
+        " - оператор НЕ видит личные данные (например, ФИО, номер, почта);\n" +
+        " - оператор НЕ может воздействовать на Вашу страницу;\n" +
+        " - оператор видит ТОЛЬКО страницу текущего сайта."
     confirmForm.appendChild(confirmFormText)
 
     const checkbox1input = document.createElement("input")
@@ -369,7 +374,7 @@ function createCloseButtonMessage(message) {
             const messagesContainer = document.getElementById("chat-rectangle-body")
             messagesContainer.appendChild(createInfoMessage(message))
             messagesContainer.scrollTo(0, messagesContainer.scrollHeight)
-            
+
             syncRequest('POST', `/sessions/${sessionId}/finish`)
         }
     })
